@@ -18,10 +18,10 @@ interface IERC20 {
     function approve(address spender, uint256 amount) external returns (bool);
 
     /// @notice Confirm the allowed amount before deposit
-    function allowance(address owner, address spender)
-        external
-        view
-        returns (uint256);
+    function allowance(
+        address owner,
+        address spender
+    ) external view returns (uint256);
 
     /// @notice Transfer USDC from User to Pool contract
     function transferFrom(
@@ -54,11 +54,7 @@ interface PoolAave {
     ) external;
 
     /// @notice Withdraw USDC from Aave Pool
-    function withdraw(
-        address asset,
-        uint256 amount,
-        address to
-    ) external;
+    function withdraw(address asset, uint256 amount, address to) external;
 }
 
 /* ========== CONTRACT BEGINNING ========== */
@@ -103,28 +99,28 @@ contract IpPool is Ownable, Pausable {
         _unpause();
     }
 
-    /// @notice CDefine the contract for testing (only for testnet), the 2 contracts will merge after validation
-    function setInterpoolContract(address _interpoolContract) public onlyOwner {
-        interpoolContract = _interpoolContract;
-    }
-
     /// @notice Deposit USDC on Pool which will be deposited on Aave and receive tickets
     /// @notice Amount = nb of tickets / 1 ticket = 50 USDC
     function depositOnAave(uint256 _amount, address _player) external {
         require(msg.sender == interpoolContract, "Not allowed!");
         require(_amount % 50 == 0, "The amount must be a multiple of 50");
         require(
-            _amount * 10**6 <= usdcToken.balanceOf(_player),
+            _amount * 10 ** 6 <= usdcToken.balanceOf(_player),
             "Insufficent amount of USDC"
         );
         require(
-            _amount * 10**6 <= usdcToken.allowance(_player, address(this)),
+            _amount * 10 ** 6 <= usdcToken.allowance(_player, address(this)),
             "Insufficient allowed USDC"
         );
         uint256 nbTickets = _amount / 50;
-        usdcToken.transferFrom(_player, address(this), _amount * 10**6);
-        usdcToken.approve(address(poolAave), _amount * 10**6);
-        poolAave.supply(address(usdcToken), _amount * 10**6, address(this), 0);
+        usdcToken.transferFrom(_player, address(this), _amount * 10 ** 6);
+        usdcToken.approve(address(poolAave), _amount * 10 ** 6);
+        poolAave.supply(
+            address(usdcToken),
+            _amount * 10 ** 6,
+            address(this),
+            0
+        );
         interpoolTicket.mint(_player, nbTickets);
     }
 
@@ -137,8 +133,6 @@ contract IpPool is Ownable, Pausable {
             "There is no pending winnings!"
         );
         uint256 amount = winningsPerPlayer[_player].pendingWinnings;
-        poolAave.withdraw(address(usdcToken), amount, address(this));
-        usdcToken.transfer(_player, amount);
         poolAave.withdraw(address(usdcToken), amount, _player);
         winningsPerPlayer[_player].pendingWinnings = 0;
         winningsPerPlayer[_player].claimedWinnings += amount;
@@ -155,10 +149,10 @@ contract IpPool is Ownable, Pausable {
         interpoolTicket.burn(_player, _nbTickets);
         poolAave.withdraw(
             address(usdcToken),
-            _nbTickets * 50 * 10**6,
+            _nbTickets * 50 * 10 ** 6,
             address(this)
         );
-        usdcToken.transfer(_player, _nbTickets * 50 * 10**6);
+        usdcToken.transfer(_player, _nbTickets * 50 * 10 ** 6);
     }
 
     /// @notice update winnings per player and global pending winnings
@@ -174,16 +168,14 @@ contract IpPool is Ownable, Pausable {
     /// @notice Prize Pool = USDC on Aave Pool - (Number of supplied tickets x 50) - pendings waiting claiming
     function getGlobalPrizePool() external view returns (uint256) {
         uint256 aavePoolValue = aUsdcToken.balanceOf(address(this));
-        uint256 ipPoolValue = interpoolTicket.totalSupply() * 50 * 10**6;
+        uint256 ipPoolValue = interpoolTicket.totalSupply() * 50 * 10 ** 6;
         return aavePoolValue - ipPoolValue - globalPendingWinnings;
     }
 
     /// @notice get pending and claimed winnings for a player
-    function getWinningsPerPlayer(address _player)
-        external
-        view
-        returns (uint256, uint256)
-    {
+    function getWinningsPerPlayer(
+        address _player
+    ) external view returns (uint256, uint256) {
         return (
             winningsPerPlayer[_player].pendingWinnings,
             winningsPerPlayer[_player].claimedWinnings

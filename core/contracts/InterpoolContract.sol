@@ -193,11 +193,6 @@ contract InterpoolContract is Ownable, Pausable {
         poolContract = IPool(_poolContract);
     }
 
-    /// @notice Change the contract used for Prediction (only for testnet)
-    function setEnetContract(address _enetContract) public onlyOwner {
-        enetContract = IEnet(_enetContract);
-    }
-
     /// @notice Pausable functions
     function pause() public onlyOwner {
         _pause();
@@ -302,34 +297,6 @@ contract InterpoolContract is Ownable, Pausable {
             );
             verifPlayerPlayedPerContest[currentContestId][msg.sender] = true;
         }
-    }
-
-    /**
-     * @notice Save predictions for a player for contest done by contract owner
-     * @param _contestId : contest id associated to predictions
-     * @param _player : player associated to predictions
-     * @param _gamePredictions: table of games with predicted scores from previous smartc contract
-     * @dev This function is only for testnet, to recover existing predictions from a previous contract
-     */
-
-    function savePredictionPerOwner(
-        uint256 _contestId,
-        address _player,
-        GamePredict[] memory _gamePredictions
-    ) external onlyOwner {
-        uint256 nbOfGames = 48;
-        uint256 nbTickets = interpoolTicket.balanceOf(_player);
-        /// Create/Update all predictions for a player
-        for (uint256 i = 0; i < nbOfGames; i++) {
-            predictionsPerPlayerPerGame[_player][_gamePredictions[i].gameId] = [
-                _gamePredictions[i].homeScore,
-                _gamePredictions[i].awayScore
-            ];
-        }
-        listPlayersWithNbTicketsPerContest[_contestId].push(
-            NbTicketsPerPlayer({player: _player, nbTickets: nbTickets})
-        );
-        verifPlayerPlayedPerContest[_contestId][_player] = true;
     }
 
     /// At the end of the contest, create the table with all infos of the contest
